@@ -3,7 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import { Button, Icon } from "@rneui/themed";
 
-export default function Income() {
+export default function Income({ navigation }) {
   //lisää tietokanta taului jossa on erilaisia palkkapäiviä. ja Joku missä niitä voi lisätä
   const [total, setTotal] = useState(0);
   const [employers, setEmployers] = useState([
@@ -29,6 +29,7 @@ export default function Income() {
           size={35}
           style={{ marginRight: 20 }}
           color={"white"}
+          onPress={() => navigation.navigate("AddEmployer")}
         />
       </View>
       <View>
@@ -80,13 +81,19 @@ export default function Income() {
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={{ color: "white" }}>More info</Text>
+                  <Text
+                    style={{ color: "white" }}
+                    onPress={() => navigation.navigate("EmployerInfo")} // Fix the typo here
+                  >
+                    More info
+                  </Text>
                   <Icon
                     type="antdesign"
                     name="arrowright"
                     size={15}
                     style={{ marginRight: 20 }}
                     color={"white"}
+                    onPress={() => navigation.navigate("EmployerInfo")}
                   />
                 </View>
                 <View
@@ -102,6 +109,7 @@ export default function Income() {
                     style={{
                       color: "white",
                     }}
+                    onPress={() => navigation.navigate("AddShift")}
                   >
                     Add shift
                   </Text>
