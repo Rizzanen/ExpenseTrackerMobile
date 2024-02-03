@@ -18,14 +18,13 @@ const db = SQLite.openDatabase("incomeExpense.db");
 export default function Income({ navigation }) {
   const [total, setTotal] = useState(0);
   const [employers, setEmployers] = useState([]);
-  const [name, setName] = useState("");
-  const [currentMonthIncome, setCurrentMonthIncome] = useState(0.0);
-  const [currentMonthShiftAmount, setCurrentMonthShiftAmount] = useState(0);
-  const [currentMonthWorkHourAmount, setCurrentMonthWorkHourAmount] =
-    useState(0.0);
-  const [totalIncome, setTotalIncome] = useState(0.0);
-  const [totalShifts, setTotalShifts] = useState(0);
-  const [hourlyPay, setHourlyPay] = useState();
+  const [employer, setEmployer] = useState({
+    name: "",
+    currentMonthIncome: 0.0,
+    currentMonthShiftAmount: 0,
+    currentMonthWorkHourAmount: 0.0,
+    hourlyPay: "",
+  });
   const [renderer, setRenderer] = useState(false);
   const [showEmployerAddComponent, setShowEmployerAddComponent] =
     useState(false);
@@ -35,7 +34,7 @@ export default function Income({ navigation }) {
     db.transaction(
       (tx) => {
         tx.executeSql(
-          "create table if not exists employers (id integer primary key not null, name text, currentMonthIncome real, currentMonthShiftAmount int, currentMonthWorkHourAmount real, totalIncome real, totalShifts int, hourlyPay real );"
+          "create table if not exists employers (id integer primary key not null, name text, currentMonthIncome real, currentMonthShiftAmount int, currentMonthWorkHourAmount real, hourlyPay real );"
         );
       },
       () => console.error("Error when creating DB"),
@@ -49,34 +48,45 @@ export default function Income({ navigation }) {
       (tx) => {
         tx.executeSql("select * from employers;", [], (_, { rows }) => {
           setEmployers(rows._array);
+          console.log(rows._array);
+          let totalIncome = 0.0;
+          rows._array.forEach((rowObject) => {
+            totalIncome += parseFloat(rowObject.currentMonthIncome);
+          });
+          setTotal(totalIncome);
         });
       },
       null,
       null
     );
+    console.log(employers);
   };
 
-  const saveItem = () => {
-    console.log("saveItem was excecuted");
+  const addEmployer = () => {
+    console.log("item saved");
     db.transaction((tx) => {
       tx.executeSql(
-        "insert into employers (name, currentMonthIncome, currentMonthShiftAmount, currentMonthWorkHourAmount, totalIncome, totalShifts, hourlyPay) values (?, ?, ?, ?, ?, ?, ?);",
+        "insert into employers (name, currentMonthIncome, currentMonthShiftAmount, currentMonthWorkHourAmount, hourlyPay) values (?, ?, ?, ?, ?);",
         [
-          name,
-          currentMonthIncome,
-          currentMonthShiftAmount,
-          currentMonthWorkHourAmount,
-          totalIncome,
-          totalShifts,
-          hourlyPay,
+          employer.name,
+          employer.currentMonthIncome,
+          employer.currentMonthShiftAmount,
+          employer.currentMonthWorkHourAmount,
+          employer.hourlyPay,
         ]
       );
     }, null);
     setRenderer(!renderer);
     Keyboard.dismiss();
     setShowEmployerAddComponent(false);
-    setName("");
-    setHourlyPay(0.0);
+    setEmployer({
+      name: "",
+      currentMonthIncome: 0.0,
+      currentMonthShiftAmount: 0,
+      currentMonthWorkHourAmount: 0.0,
+      hourlyPay: "",
+    });
+    console.log(employers);
   };
 
   const deleteItem = (id) => {
@@ -95,6 +105,21 @@ export default function Income({ navigation }) {
       },
     ]);
   };
+
+  // const resetDatabase = () => {
+  //   console.log("Resetting the database");
+  //   db.transaction(
+  //     (tx) => {
+  //       tx.executeSql("DROP TABLE IF EXISTS employer;");
+  //     },
+  //     (error) => console.error("Error during database reset:", error),
+  //     () => {
+  //       console.log("Database reset successful");
+  //       // After resetting, you might want to recreate the table
+  //       updateList();
+  //     }
+  //   );
+  // };
 
   return (
     <View style={{ flex: 1 }}>
@@ -123,15 +148,17 @@ export default function Income({ navigation }) {
           <Input
             placeholder="Employer name"
             label="Employer name"
-            value={name}
-            onChangeText={(text) => setName(text)}
+            value={employer.name}
+            onChangeText={(text) => setEmployer({ ...employer, name: text })}
             labelStyle={{ color: "green" }}
           />
           <Input
             placeholder="Hourly pay"
             label="Hourly pay"
-            value={hourlyPay}
-            onChangeText={(text) => setHourlyPay(parseFloat(text))}
+            value={employer.hourlyPay}
+            onChangeText={(text) =>
+              setEmployer({ ...employer, hourlyPay: parseFloat(text) })
+            }
             labelStyle={{ color: "green" }}
           />
           <Button
@@ -143,7 +170,7 @@ export default function Income({ navigation }) {
               marginRight: "auto",
             }}
             onPress={() => {
-              saveItem();
+              addEmployer();
               setShowEmployerAddComponent(false);
             }}
           />
@@ -159,98 +186,25 @@ export default function Income({ navigation }) {
             onLongPress={() => deleteItem(item.id)}
           >
             <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  marginLeft: 15,
-                  fontSize: 30,
-                  color: "white",
-                }}
-              >
-                {item.name}
-              </Text>
-              <Text
-                style={{
-                  marginLeft: 15,
-                  fontSize: 18,
-                  marginTop: 40,
-                  color: "white",
-                }}
-              >
+              <Text style={styles.itemNameText}>{item.name}</Text>
+              <Text style={styles.shiftAmountText}>
                 {item.currentMonthShiftAmount} Shifts
               </Text>
-              <Text
-                style={{
-                  marginLeft: 15,
-                  fontSize: 18,
-                  marginTop: 5,
-                  color: "white",
-                }}
-              >
+              <Text style={styles.currentMonthHoursText}>
                 {item.currentMonthWorkHourAmount} hours
               </Text>
-              <Text
-                style={{
-                  marginLeft: 15,
-                  fontSize: 18,
-                  marginTop: 5,
-                  color: "white",
-                }}
-              >
+              <Text style={styles.currentMonthIncomeText}>
                 Total: {item.currentMonthIncome} €
               </Text>
             </View>
-            <View
-              style={{
-                justifyContent: "space-between",
-                alignItems: "center",
-                height: "100%",
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
+            <View style={styles.employerContainer}>
+              <Button
+                onPress={() => {
+                  navigation.navigate("AddShift", { employer: item });
                 }}
               >
-                <Text
-                  style={{
-                    color: "white",
-                    marginTop: 10,
-                  }}
-                  onPress={() => navigation.navigate("EmployerInfo")} // Fix the typo here
-                >
-                  More info
-                </Text>
-                <Icon
-                  type="antdesign"
-                  name="arrowright"
-                  size={15}
-                  style={{
-                    marginRight: 20,
-                    marginTop: 10,
-                  }}
-                  color={"white"}
-                  onPress={() => navigation.navigate("EmployerInfo")}
-                />
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  borderWidth: 2,
-                  borderColor: "white",
-                  padding: 10,
-                  marginRight: "auto",
-                }}
-              >
-                <Text
-                  style={{
-                    color: "white",
-                  }}
-                  onPress={() => navigation.navigate("AddShift")}
-                >
-                  Add shift
-                </Text>
-              </View>
+                Add shift
+              </Button>
             </View>
           </Pressable>
         )}
@@ -291,5 +245,45 @@ const styles = StyleSheet.create({
     backgroundColor: "green",
     flexDirection: "row",
     flex: 1,
+  },
+  itemNameText: {
+    marginLeft: 15,
+    fontSize: 30,
+    color: "white",
+  },
+  shiftAmountText: {
+    marginLeft: 15,
+    fontSize: 18,
+    marginTop: 40,
+    color: "white",
+  },
+  currentMonthHoursText: {
+    marginLeft: 15,
+    fontSize: 18,
+    marginTop: 5,
+    color: "white",
+  },
+  currentMonthIncomeText: {
+    marginLeft: 15,
+    fontSize: 18,
+    marginTop: 5,
+    color: "white",
+  },
+  employerContainer: {
+    justifyContent: "space-between",
+    alignItems: "center",
+    height: "100%",
+    flex: 1,
+  },
+  addShiftContainer: {
+    borderWidth: 2,
+    borderColor: "white",
+    padding: 10,
+
+    backgroundColor: "white",
+    marginTop: 20,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
