@@ -11,11 +11,15 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState, useEffect } from "react";
 import { Button, Icon, Input } from "@rneui/themed";
 import * as SQLite from "expo-sqlite";
-import Swipeable from "react-native-gesture-handler/Swipeable";
+import { useIsFocused } from "@react-navigation/native";
 
 const db = SQLite.openDatabase("incomeExpense.db");
 
 export default function Income({ navigation }) {
+  const isFocused = useIsFocused();
+
+  const [deductions, setDeductions] = useState(10.65);
+  const [netTotal, setNetTotal] = useState(0.0);
   const [total, setTotal] = useState(0);
   const [employers, setEmployers] = useState([]);
   const [employer, setEmployer] = useState({
@@ -30,7 +34,6 @@ export default function Income({ navigation }) {
     useState(false);
 
   useEffect(() => {
-    console.log("useEffect executed");
     db.transaction(
       (tx) => {
         tx.executeSql(
@@ -42,28 +45,32 @@ export default function Income({ navigation }) {
     );
   }, [renderer]);
 
+  useEffect(() => {
+    if (isFocused) {
+      updateList();
+    }
+  }, [isFocused]);
+
   const updateList = () => {
-    console.log("Update executed");
     db.transaction(
       (tx) => {
         tx.executeSql("select * from employers;", [], (_, { rows }) => {
           setEmployers(rows._array);
-          console.log(rows._array);
           let totalIncome = 0.0;
           rows._array.forEach((rowObject) => {
             totalIncome += parseFloat(rowObject.currentMonthIncome);
           });
+          let net = totalIncome * ((100 - deductions) / 100);
           setTotal(totalIncome);
+          setNetTotal(net);
         });
       },
       null,
       null
     );
-    console.log(employers);
   };
 
   const addEmployer = () => {
-    console.log("item saved");
     db.transaction((tx) => {
       tx.executeSql(
         "insert into employers (name, currentMonthIncome, currentMonthShiftAmount, currentMonthWorkHourAmount, hourlyPay) values (?, ?, ?, ?, ?);",
@@ -86,7 +93,6 @@ export default function Income({ navigation }) {
       currentMonthWorkHourAmount: 0.0,
       hourlyPay: "",
     });
-    console.log(employers);
   };
 
   const deleteItem = (id) => {
@@ -115,17 +121,20 @@ export default function Income({ navigation }) {
   //     (error) => console.error("Error during database reset:", error),
   //     () => {
   //       console.log("Database reset successful");
-  //       // After resetting, you might want to recreate the table
   //       updateList();
   //     }
   //   );
   // };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: "rgb(23,24,33)" }}>
       <View style={styles.headerContainer}>
-        <Text style={styles.header}>Total income: {total} €</Text>
+        <Text style={styles.header}>Gross income: {total.toFixed(2)} €</Text>
       </View>
+      <View style={styles.employerHeaderContainer}>
+        <Text style={styles.header}>Net income: {netTotal.toFixed(2)} €</Text>
+      </View>
+
       <View style={styles.employerHeaderContainer}>
         <Text style={styles.header}>Employers</Text>
         <Icon
@@ -134,7 +143,7 @@ export default function Income({ navigation }) {
           size={35}
           style={{ marginRight: 20 }}
           color={"white"}
-          onPress={() => setShowEmployerAddComponent(true)}
+          onPress={() => setShowEmployerAddComponent(!showEmployerAddComponent)}
         />
       </View>
 
@@ -150,7 +159,7 @@ export default function Income({ navigation }) {
             label="Employer name"
             value={employer.name}
             onChangeText={(text) => setEmployer({ ...employer, name: text })}
-            labelStyle={{ color: "green" }}
+            labelStyle={{ color: "white" }}
           />
           <Input
             placeholder="Hourly pay"
@@ -159,10 +168,10 @@ export default function Income({ navigation }) {
             onChangeText={(text) =>
               setEmployer({ ...employer, hourlyPay: parseFloat(text) })
             }
-            labelStyle={{ color: "green" }}
+            labelStyle={{ color: "white" }}
           />
           <Button
-            color={"green"}
+            color={"darkgreen"}
             title={"Add"}
             containerStyle={{
               width: "90%",
@@ -199,6 +208,7 @@ export default function Income({ navigation }) {
             </View>
             <View style={styles.employerContainer}>
               <Button
+                color={"darkgreen"}
                 onPress={() => {
                   navigation.navigate("AddShift", { employer: item });
                 }}
@@ -220,20 +230,24 @@ const styles = StyleSheet.create({
     color: "white",
   },
   employerHeaderContainer: {
-    marginTop: 10,
-    marginBottom: 10,
-    backgroundColor: "green",
+    backgroundColor: "rgb(32, 41, 54)",
     paddingBottom: 10,
     paddingTop: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    borderColor: "darkgreen",
+    borderWidth: 2,
+    marginBottom: 5,
   },
   headerContainer: {
     marginTop: 10,
-    backgroundColor: "green",
+    backgroundColor: "rgb(32, 41, 54)",
     paddingBottom: 10,
     paddingTop: 10,
+    borderColor: "darkgreen",
+    borderWidth: 2,
+    marginBottom: 5,
   },
   employerView: {
     marginTop: 10,
@@ -242,9 +256,11 @@ const styles = StyleSheet.create({
     width: "95%",
     marginLeft: "auto",
     marginRight: "auto",
-    backgroundColor: "green",
+    backgroundColor: "rgb(32, 41, 54)",
     flexDirection: "row",
     flex: 1,
+    borderColor: "darkgreen",
+    borderWidth: 2,
   },
   itemNameText: {
     marginLeft: 15,
@@ -270,7 +286,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   employerContainer: {
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     height: "100%",
     flex: 1,
@@ -279,7 +295,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "white",
     padding: 10,
-
     backgroundColor: "white",
     marginTop: 20,
     flex: 1,

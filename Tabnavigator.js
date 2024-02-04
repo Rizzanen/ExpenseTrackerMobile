@@ -12,6 +12,8 @@ export default function TabNavigator() {
       screenOptions={({ route }) => ({
         tabBarActiveTintColor: "green",
         headerTintColor: "green",
+        headerStyle: { backgroundColor: "rgb(23,24,33)" },
+        tabBarStyle: { backgroundColor: "rgb(23,24,33)" },
         tabBarIcon: ({ focused, color, size }) => {
           let iconComponent;
 

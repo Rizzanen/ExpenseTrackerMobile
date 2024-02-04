@@ -11,22 +11,15 @@ export default function AddShift({ route, navigation }) {
   const [allowanceHours, setAllowanceHours] = useState();
   const [hours, setHours] = useState();
 
-  useEffect(() => {
-    console.log(employer);
-  }, []);
-
   const addShift = () => {
     let newIncome;
     if (!allowance) {
-      console.log("without allowance");
       newIncome = parseFloat(employer.hourlyPay) * parseFloat(hours);
     } else {
-      console.log("with allowance");
       const amountOfAllowance =
         parseFloat(allowanceHours) *
         parseFloat(employer.hourlyPay) *
         (parseFloat(allowance) / 100);
-      console.log("amount of allowance" + amountOfAllowance);
       newIncome =
         parseFloat(employer.hourlyPay) * parseFloat(hours) + amountOfAllowance;
     }
@@ -35,10 +28,7 @@ export default function AddShift({ route, navigation }) {
       employer.currentMonthWorkHourAmount + parseFloat(hours);
     employer.currentMonthShiftAmount = employer.currentMonthShiftAmount + 1;
 
-    console.log("did employer calues change?" + JSON.stringify(employer));
-
     db.transaction((tx) => {
-      console.log("starting transaction");
       tx.executeSql(
         "update employers set currentMonthIncome = ?, currentMonthShiftAmount = ?, currentMonthWorkHourAmount = ? where id = ?;",
         [
@@ -46,14 +36,7 @@ export default function AddShift({ route, navigation }) {
           employer.currentMonthShiftAmount,
           employer.currentMonthWorkHourAmount.toFixed(2),
           employer.id,
-        ],
-        (tx, results) => {
-          if (results.rowsAffected > 0) {
-            console.log("Update successful");
-          } else {
-            console.log("Update failed");
-          }
-        }
+        ]
       );
     }, null);
 
@@ -81,7 +64,14 @@ export default function AddShift({ route, navigation }) {
         value={allowanceHours}
         onChangeText={(text) => setAllowanceHours(text)}
       />
-      <Button onPress={() => addShift()}>Add</Button>
+      <Button
+        onPress={() => {
+          addShift();
+          navigation.navigate("Back");
+        }}
+      >
+        Add
+      </Button>
     </View>
   );
 }
