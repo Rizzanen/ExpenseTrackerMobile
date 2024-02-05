@@ -160,6 +160,7 @@ export default function Income({ navigation }) {
             value={employer.name}
             onChangeText={(text) => setEmployer({ ...employer, name: text })}
             labelStyle={{ color: "white" }}
+            inputStyle={{ color: "white" }}
           />
           <Input
             placeholder="Hourly pay"
@@ -169,6 +170,7 @@ export default function Income({ navigation }) {
               setEmployer({ ...employer, hourlyPay: parseFloat(text) })
             }
             labelStyle={{ color: "white" }}
+            inputStyle={{ color: "white" }}
           />
           <Button
             color={"darkgreen"}
@@ -239,6 +241,10 @@ const styles = StyleSheet.create({
     borderColor: "darkgreen",
     borderWidth: 2,
     marginBottom: 5,
+    shadowColor: "white",
+    shadowOffset: { width: 20, height: 10 },
+    shadowRadius: 20,
+    shadowOpacity: 0.5,
   },
   headerContainer: {
     marginTop: 10,
@@ -248,6 +254,10 @@ const styles = StyleSheet.create({
     borderColor: "darkgreen",
     borderWidth: 2,
     marginBottom: 5,
+    shadowColor: "white",
+    shadowOffset: { width: 20, height: 10 },
+    shadowRadius: 20,
+    shadowOpacity: 0.5,
   },
   employerView: {
     marginTop: 10,
@@ -261,6 +271,10 @@ const styles = StyleSheet.create({
     flex: 1,
     borderColor: "darkgreen",
     borderWidth: 2,
+    shadowColor: "white",
+    shadowOffset: { width: 10, height: 10 },
+    shadowRadius: 100,
+    shadowOpacity: 0.5,
   },
   itemNameText: {
     marginLeft: 15,
