@@ -6,8 +6,8 @@ import {
   Pressable,
   Keyboard,
   Alert,
+  ScrollView,
 } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState, useEffect } from "react";
 import { Button, Icon, Input } from "@rneui/themed";
 import * as SQLite from "expo-sqlite";
