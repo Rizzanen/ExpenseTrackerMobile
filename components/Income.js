@@ -6,7 +6,6 @@ import {
   Pressable,
   Keyboard,
   Alert,
-  ScrollView,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { Button, Icon, Input } from "@rneui/themed";
@@ -167,10 +166,14 @@ export default function Income({ navigation }) {
             label="Hourly pay"
             value={employer.hourlyPay}
             onChangeText={(text) =>
-              setEmployer({ ...employer, hourlyPay: parseFloat(text) })
+              setEmployer({
+                ...employer,
+                hourlyPay: parseFloat(text.replace(",", ".")),
+              })
             }
             labelStyle={{ color: "white" }}
             inputStyle={{ color: "white" }}
+            keyboardType="numeric"
           />
           <Button
             color={"darkgreen"}
@@ -205,7 +208,7 @@ export default function Income({ navigation }) {
                 {item.currentMonthWorkHourAmount} hours
               </Text>
               <Text style={styles.currentMonthIncomeText}>
-                Total: {item.currentMonthIncome} €
+                Total: {item.currentMonthIncome.toFixed(2)} €
               </Text>
             </View>
             <View style={styles.employerContainer}>
@@ -241,10 +244,6 @@ const styles = StyleSheet.create({
     borderColor: "darkgreen",
     borderWidth: 2,
     marginBottom: 5,
-    shadowColor: "white",
-    shadowOffset: { width: 20, height: 10 },
-    shadowRadius: 20,
-    shadowOpacity: 0.5,
   },
   headerContainer: {
     marginTop: 10,
@@ -256,7 +255,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     shadowColor: "white",
     shadowOffset: { width: 20, height: 10 },
-    shadowRadius: 20,
+    shadowRadius: 50,
     shadowOpacity: 0.5,
   },
   employerView: {
@@ -274,7 +273,7 @@ const styles = StyleSheet.create({
     shadowColor: "white",
     shadowOffset: { width: 10, height: 10 },
     shadowRadius: 100,
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.3,
   },
   itemNameText: {
     marginLeft: 15,

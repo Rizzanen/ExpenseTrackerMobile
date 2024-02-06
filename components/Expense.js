@@ -1,25 +1,37 @@
-import { View, Text, StyleSheet, ScrollView, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Pressable,
+  Keyboard,
+} from "react-native";
 import { Button, Icon, Input } from "@rneui/themed";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import * as SQLite from "expo-sqlite";
 import { SelectList } from "react-native-dropdown-select-list";
+import "react-native-reanimated";
+import "react-native-gesture-handler";
+import { MotiView } from "moti";
+import HeaderRevealAnimation from "./RevealAnimation";
 
 const db = SQLite.openDatabase("incomeExpense.db");
 
 export default function Expense() {
-  const categorys = ["Groceries", "Car", "Clothing", "Housing", "Other"];
+  const [rerender, setRerender] = useState(false);
+  const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
 
   const [category, setCategory] = useState();
   const [amount, setAmount] = useState();
+
   const [totalExpenses, setTotalExpenses] = useState();
   const [groceriesTotal, setGroceriesTotal] = useState();
   const [carTotal, setCarTotal] = useState();
   const [clothesTotal, setClothesTotal] = useState();
   const [livingTotal, setLivingTotal] = useState();
   const [otherTotal, setOtherTotal] = useState();
-
-  const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
 
   useEffect(() => {
     db.transaction(
@@ -29,15 +41,45 @@ export default function Expense() {
         );
       },
       () => console.error("Error when creating DB"),
-      updateList
+      updatePage
     );
-  }, []);
+  }, [rerender]);
 
-  const updateList = () => {
+  const updatePage = () => {
     db.transaction(
       (tx) => {
         tx.executeSql("select * from expenses;", [], (_, { rows }) => {
-          console.log(rows._array);
+          let carExpenses = 0.0;
+          let grocerieExpenses = 0.0;
+          let clothingExpenses = 0.0;
+          let livingExpenses = 0.0;
+          let otherExpenses = 0.0;
+          rows._array.forEach((row) => {
+            if (row.category == "car") {
+              carExpenses += parseFloat(row.amount);
+            } else if (row.category == "groceries") {
+              grocerieExpenses += parseFloat(row.amount);
+            } else if (row.category == "clothing") {
+              clothingExpenses += parseFloat(row.amount);
+            } else if (row.category == "living") {
+              livingExpenses += parseFloat(row.amount);
+            } else {
+              otherExpenses += parseFloat(row.amount);
+            }
+          });
+
+          let total =
+            carExpenses +
+            grocerieExpenses +
+            clothingExpenses +
+            livingExpenses +
+            otherExpenses;
+          setTotalExpenses(total.toFixed(2));
+          setCarTotal(carExpenses.toFixed(2));
+          setGroceriesTotal(grocerieExpenses.toFixed(2));
+          setClothesTotal(clothingExpenses.toFixed(2));
+          setLivingTotal(livingExpenses.toFixed(2));
+          setOtherTotal(otherExpenses.toFixed(2));
         });
       },
       null,
@@ -45,56 +87,67 @@ export default function Expense() {
     );
   };
 
-  const addEmployer = () => {
+  const addExpense = () => {
     db.transaction((tx) => {
-      tx.executeSql(
-        "insert into employers (name, currentMonthIncome, currentMonthShiftAmount, currentMonthWorkHourAmount, hourlyPay) values (?, ?, ?, ?, ?);",
-        [
-          employer.name,
-          employer.currentMonthIncome,
-          employer.currentMonthShiftAmount,
-          employer.currentMonthWorkHourAmount,
-          employer.hourlyPay,
-        ]
-      );
+      tx.executeSql("insert into expenses (category, amount) values (?, ?);", [
+        category,
+        amount,
+      ]);
     }, null);
-    setRenderer(!renderer);
     Keyboard.dismiss();
-    setShowEmployerAddComponent(false);
-    setEmployer({
-      name: "",
-      currentMonthIncome: 0.0,
-      currentMonthShiftAmount: 0,
-      currentMonthWorkHourAmount: 0.0,
-      hourlyPay: "",
-    });
+    setCategory("");
+    setAmount("");
+    setRerender(!rerender);
   };
 
-  const deleteItem = (id) => {
-    Alert.alert("Confirm", "Are you sure you want to  delete the employer?", [
-      {
-        text: "Ok",
-        onPress: () =>
-          db.transaction(
-            (tx) => tx.executeSql("delete from employers where id = ?;", [id]),
-            null,
-            updateList
-          ),
-      },
-      {
-        text: "Cancel",
-      },
-    ]);
-  };
-  // tee kulujen lisäys toiminto kun categorian palloa klikataan ja tee help nappi joka jossa lisäys ohjeet.
+  // const resetDatabase = () => {
+  //   console.log("Resetting database");
+  //   db.transaction(
+  //     (tx) => {
+  //       tx.executeSql("DROP TABLE IF EXISTS expenses;");
+  //     },
+  //     (error) => console.error("Error during database reset:", error),
+  //     () => {
+  //       console.log("Database reset successful");
+  //       updateList();
+  //     }
+  //   );
+  // };
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "rgb(23,24,33)" }}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.header}>Total Expenses : 1000€</Text>
-      </View>
-
+      <HeaderRevealAnimation totalExpenses={totalExpenses} />
+      {showAddExpenseForm && (
+        <View style={styles.addExpenseContainer}>
+          <Text style={styles.header}>Add {category} expenses</Text>
+          <Input
+            keyboardType="numeric"
+            placeholder="Amount"
+            onChangeText={(text) => {
+              setAmount(parseFloat(text.replace(",", ".")));
+            }}
+            labelStyle={{ color: "white" }}
+            inputStyle={{ color: "white" }}
+          />
+          <Button
+            style={styles.button}
+            title={"Add"}
+            onPress={() => {
+              setShowAddExpenseForm(!showAddExpenseForm);
+              addExpense();
+            }}
+            color={"darkgreen"}
+          />
+        </View>
+      )}
       <View style={styles.circleContainer}>
-        <View style={styles.circle}>
+        <Pressable
+          onPress={() => {
+            setCategory("groceries");
+            setShowAddExpenseForm(!showAddExpenseForm);
+          }}
+          style={styles.circle}
+        >
           <Icon
             type="materialIcons"
             name="local-grocery-store"
@@ -102,9 +155,15 @@ export default function Expense() {
             style={{ marginRight: 0 }}
             color={"white"}
           />
-          <Text style={styles.circleText}>420.96 €</Text>
-        </View>
-        <View style={styles.circle}>
+          <Text style={styles.circleText}>{groceriesTotal} €</Text>
+        </Pressable>
+        <Pressable
+          style={styles.circle}
+          onPress={() => {
+            setCategory("car");
+            setShowAddExpenseForm(!showAddExpenseForm);
+          }}
+        >
           <Icon
             type="antdesign"
             name="car"
@@ -112,20 +171,32 @@ export default function Expense() {
             style={{ marginRight: 0 }}
             color={"white"}
           />
-          <Text style={styles.circleText}>420.96 €</Text>
-        </View>
+          <Text style={styles.circleText}>{carTotal} €</Text>
+        </Pressable>
       </View>
       <View style={styles.circleContainer}>
-        <View style={styles.circle}>
+        <Pressable
+          style={styles.circle}
+          onPress={() => {
+            setCategory("clothing");
+            setShowAddExpenseForm(!showAddExpenseForm);
+          }}
+        >
           <Ionicons
             name="shirt-sharp"
             size={35}
             style={{ marginRight: 0 }}
             color={"white"}
           />
-          <Text style={styles.circleText}>420.96 €</Text>
-        </View>
-        <View style={styles.circle}>
+          <Text style={styles.circleText}>{clothesTotal} €</Text>
+        </Pressable>
+        <Pressable
+          style={styles.circle}
+          onPress={() => {
+            setCategory("living");
+            setShowAddExpenseForm(!showAddExpenseForm);
+          }}
+        >
           <Icon
             type="materialicons"
             name="house"
@@ -133,11 +204,17 @@ export default function Expense() {
             style={{ marginRight: 0 }}
             color={"white"}
           />
-          <Text style={styles.circleText}>420.96 €</Text>
-        </View>
+          <Text style={styles.circleText}>{livingTotal} €</Text>
+        </Pressable>
       </View>
       <View style={styles.circleContainer}>
-        <View style={styles.circle}>
+        <Pressable
+          style={styles.circle}
+          onPress={() => {
+            setCategory("other");
+            setShowAddExpenseForm(!showAddExpenseForm);
+          }}
+        >
           <Icon
             type="fontisto"
             name="question"
@@ -145,8 +222,8 @@ export default function Expense() {
             style={{ marginRight: 0 }}
             color={"white"}
           />
-          <Text style={styles.circleText}>420.96 €</Text>
-        </View>
+          <Text style={styles.circleText}>{otherTotal} €</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -197,5 +274,23 @@ const styles = StyleSheet.create({
   },
   circleContainer: {
     flexDirection: "row",
+  },
+  addExpenseContainer: {
+    marginTop: 10,
+    backgroundColor: "rgb(32, 41, 54)",
+    paddingBottom: 10,
+    paddingTop: 10,
+    borderColor: "darkgreen",
+    borderWidth: 2,
+    marginBottom: 5,
+    shadowColor: "white",
+    shadowOffset: { width: 20, height: 10 },
+    shadowRadius: 20,
+    shadowOpacity: 0.5,
+  },
+  button: {
+    width: "90%",
+    marginLeft: "auto",
+    marginRight: "auto",
   },
 });
