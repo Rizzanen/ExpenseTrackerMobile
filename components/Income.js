@@ -14,6 +14,8 @@ import { useIsFocused } from "@react-navigation/native";
 
 const db = SQLite.openDatabase("incomeExpense.db");
 
+const currentDate = new Date();
+
 export default function Income({ navigation }) {
   const isFocused = useIsFocused();
 
@@ -28,46 +30,121 @@ export default function Income({ navigation }) {
     currentMonthWorkHourAmount: 0.0,
     hourlyPay: "",
   });
+
   const [renderer, setRenderer] = useState(false);
   const [showEmployerAddComponent, setShowEmployerAddComponent] =
     useState(false);
 
   useEffect(() => {
-    db.transaction(
-      (tx) => {
-        tx.executeSql(
-          "create table if not exists employers (id integer primary key not null, name text, currentMonthIncome real, currentMonthShiftAmount int, currentMonthWorkHourAmount real, hourlyPay real );"
+    async function runUseEffectStuff() {
+      let net = 0;
+      await new Promise((resolve) => {
+        db.transaction(
+          (tx) => {
+            tx.executeSql(
+              "create table if not exists history (id integer primary key not null, month int, year int, income real, expenses real);"
+            );
+          },
+          null,
+          null
         );
-      },
-      () => console.error("Error when creating DB"),
-      updateList
-    );
+        db.transaction(
+          (tx) => {
+            tx.executeSql(
+              "create table if not exists lastTimeUsed (id integer primary key not null, month int);"
+            );
+          },
+          null,
+          null
+        );
+        db.transaction((tx) => {
+          tx.executeSql("delete from lastTimeUsed;");
+          tx.executeSql("insert into lastTimeUsed (month) values (?)", [0]);
+        }, null);
+        db.transaction(
+          (tx) => {
+            tx.executeSql(
+              "create table if not exists employers (id integer primary key not null, name text, currentMonthIncome real, currentMonthShiftAmount int, currentMonthWorkHourAmount real, hourlyPay real );"
+            );
+          },
+          (error) => console.error("Error when creating DB" + error),
+          () => resolve()
+        );
+        //täsä oli update lsit ja checknewmonth
+      });
+
+      await new Promise((resolve) => {
+        db.transaction(
+          (tx) => {
+            tx.executeSql("select * from employers;", [], (_, { rows }) => {
+              setEmployers(rows._array);
+              let totalIncome = 0.0;
+              rows._array.forEach((rowObject) => {
+                totalIncome += parseFloat(rowObject.currentMonthIncome);
+              });
+              net = totalIncome * ((100 - deductions) / 100);
+
+              setTotal(totalIncome);
+              setNetTotal(net);
+            });
+          },
+          null,
+          () => {
+            resolve();
+          }
+        );
+      });
+
+      await new Promise((resolve) => {
+        db.transaction(
+          (tx) => {
+            tx.executeSql("select * from lastTimeUsed;", [], (_, { rows }) => {
+              if (rows._array[0].month < currentDate.getMonth() + 1) {
+                tx.executeSql("delete from lastTimeUsed;");
+                //muista laittaa kakkoseen currentMonth
+                tx.executeSql("insert into lastTimeUsed (month) values (?)", [
+                  currentDate.getMonth(),
+                ]);
+              }
+            });
+          },
+          null,
+          () => {
+            saveMonthsData(net);
+            resolve();
+          }
+        );
+      });
+    }
+    runUseEffectStuff();
   }, [renderer]);
 
-  useEffect(() => {
-    if (isFocused) {
-      updateList();
-    }
-  }, [isFocused]);
+  async function saveMonthsData(net) {
+    let totalExpenses = 0.0;
 
-  const updateList = () => {
+    let month = currentDate.getMonth() + 1;
     db.transaction(
       (tx) => {
-        tx.executeSql("select * from employers;", [], (_, { rows }) => {
-          setEmployers(rows._array);
-          let totalIncome = 0.0;
-          rows._array.forEach((rowObject) => {
-            totalIncome += parseFloat(rowObject.currentMonthIncome);
+        tx.executeSql("select * from expenses;", [], (_, { rows }) => {
+          rows._array.forEach((row) => {
+            totalExpenses += row.amount;
           });
-          let net = totalIncome * ((100 - deductions) / 100);
-          setTotal(totalIncome);
-          setNetTotal(net);
+
+          tx.executeSql(
+            "insert into history (month, year, income, expenses) values (?, ?, ?, ?);",
+            [
+              month,
+              currentDate.getFullYear(),
+              net.toFixed(2),
+              totalExpenses.toFixed(2),
+            ]
+          );
         });
       },
       null,
       null
     );
-  };
+  }
 
   const addEmployer = () => {
     db.transaction((tx) => {
@@ -112,7 +189,7 @@ export default function Income({ navigation }) {
   };
 
   // const resetDatabase = () => {
-  //   console.log("Resetting the database");
+  //   console.log("Resetting database");
   //   db.transaction(
   //     (tx) => {
   //       tx.executeSql("DROP TABLE IF EXISTS employer;");
@@ -244,6 +321,10 @@ const styles = StyleSheet.create({
     borderColor: "darkgreen",
     borderWidth: 2,
     marginBottom: 5,
+    shadowColor: "white",
+    shadowOffset: { width: 20, height: 10 },
+    shadowRadius: 20,
+    shadowOpacity: 0.5,
   },
   headerContainer: {
     marginTop: 10,

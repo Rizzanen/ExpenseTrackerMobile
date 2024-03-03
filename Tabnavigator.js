@@ -3,6 +3,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Expense from "./components/Expense";
 import Income from "./components/Income";
 import { FontAwesome5 } from "@expo/vector-icons";
+import History from "./components/History";
+import { Icon } from "@rneui/base";
 
 const Tab = createBottomTabNavigator();
 
@@ -25,6 +27,10 @@ export default function TabNavigator() {
             iconComponent = (
               <FontAwesome5 name="money-check-alt" size={size} color={color} />
             );
+          } else if (route.name === "History") {
+            iconComponent = (
+              <Icon type="material" name="history" size={size} color={color} />
+            );
           }
           return iconComponent;
         },
@@ -46,6 +52,17 @@ export default function TabNavigator() {
           tabBarLabel: ({ focused, color, size }) => (
             <Text style={{ color: focused ? "darkgreen" : color }}>
               Expenses
+            </Text>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={History}
+        options={{
+          tabBarLabel: ({ focused, color, size }) => (
+            <Text style={{ color: focused ? "darkgreen" : color }}>
+              History
             </Text>
           ),
         }}
