@@ -1,7 +1,6 @@
 import { Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Expense from "./components/Expense";
-import Income from "./components/Income";
 import { FontAwesome5 } from "@expo/vector-icons";
 import History from "./components/History";
 import { Icon } from "@rneui/base";
@@ -19,11 +18,7 @@ export default function TabNavigator() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconComponent;
 
-          if (route.name === "Income") {
-            iconComponent = (
-              <FontAwesome5 name="coins" size={size} color={color} />
-            );
-          } else if (route.name === "Expense") {
+          if (route.name === "Expenses") {
             iconComponent = (
               <FontAwesome5 name="money-check-alt" size={size} color={color} />
             );
@@ -37,21 +32,12 @@ export default function TabNavigator() {
       })}
     >
       <Tab.Screen
-        name="Income"
-        component={Income}
-        options={{
-          tabBarLabel: ({ focused, color, size }) => (
-            <Text style={{ color: focused ? "darkgreen" : color }}>Income</Text>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Expense"
+        name="Expenses"
         component={Expense}
         options={{
           tabBarLabel: ({ focused, color, size }) => (
             <Text style={{ color: focused ? "darkgreen" : color }}>
-              Expenses
+              Expense tracker
             </Text>
           ),
         }}

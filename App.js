@@ -1,7 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import AddShift from "./components/AddShift";
-import EmployerInfo from "./components/EmployerInfo";
+
 import TabNavigator from "./Tabnavigator";
 
 const Stack = createNativeStackNavigator();
@@ -19,8 +18,8 @@ export default function App() {
           component={TabNavigator}
           options={{ headerShown: false }}
         />
-        <Stack.Screen name="AddShift" component={AddShift} />
-        <Stack.Screen name="EmployerInfo" component={EmployerInfo} />
+        {/* <Stack.Screen name="AddShift" component={AddShift} />
+        <Stack.Screen name="EmployerInfo" component={EmployerInfo} /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );

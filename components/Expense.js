@@ -19,31 +19,158 @@ import HeaderRevealAnimation from "./RevealAnimation";
 
 const db = SQLite.openDatabase("incomeExpense.db");
 
+let currentDate = new Date();
+
 export default function Expense() {
   const [rerender, setRerender] = useState(false);
   const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
 
   const [category, setCategory] = useState();
-  const [amount, setAmount] = useState();
+  const [amount, setAmount] = useState(0);
 
-  const [totalExpenses, setTotalExpenses] = useState();
-  const [groceriesTotal, setGroceriesTotal] = useState();
-  const [carTotal, setCarTotal] = useState();
-  const [clothesTotal, setClothesTotal] = useState();
-  const [livingTotal, setLivingTotal] = useState();
-  const [otherTotal, setOtherTotal] = useState();
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [groceriesTotal, setGroceriesTotal] = useState(0);
+  const [carTotal, setCarTotal] = useState(0);
+  const [clothesTotal, setClothesTotal] = useState(0);
+  const [livingTotal, setLivingTotal] = useState(0);
+  const [otherTotal, setOtherTotal] = useState(0);
 
+  const createExpensesTable = () => {
+    return new Promise((resolve, reject) => {
+      db.transaction(
+        (tx) => {
+          tx.executeSql(
+            "create table if not exists expenses (id integer primary key not null, category text, amount real );"
+          );
+        },
+        () => {
+          console.error("Error when creating expenses DB");
+          reject();
+        },
+        resolve()
+      );
+    });
+  };
+
+  const createHistoryTable = () => {
+    return new Promise((resolve, reject) => {
+      db.transaction(
+        (tx) => {
+          tx.executeSql(
+            "create table if not exists history (id integer primary key not null, month int, year int, expenses real);"
+          );
+        },
+        () => {
+          console.error("Error when creating history DB");
+          reject();
+        },
+        resolve()
+      );
+    });
+  };
+  const createLastTimeUsedTable = () => {
+    return new Promise((resolve, reject) => {
+      db.transaction(
+        (tx) => {
+          tx.executeSql(
+            "create table if not exists lastTimeUsed (id integer primary key not null, month int);"
+          );
+        },
+        () => {
+          console.error("Error when creating lastTimeUsed DB");
+          reject();
+        },
+        resolve()
+      );
+    });
+  };
+
+  const checkIfNewMonth = () => {
+    return new Promise((resolve, reject) => {
+      console.log("checking for new month");
+      db.transaction(
+        (tx) => {
+          tx.executeSql("select * from lastTimeUsed;", [], (_, { rows }) => {
+            const monthInDB = rows._array[0].month;
+            if (rows.length === 0) {
+              console.log("lastTimeUsed table is empty");
+              tx.executeSql("insert into lastTimeUsed (month) values (?)", [
+                currentDate.getMonth() + 1,
+              ]);
+            } else if (monthInDB != currentDate.getMonth() + 1) {
+              console.log("starting to save months data");
+              tx.executeSql("delete from lastTimeUsed;");
+              console.log("different values detected");
+              tx.executeSql("insert into lastTimeUsed (month) values (?)", [
+                currentDate.getMonth() + 1,
+              ]);
+              saveMonthsData();
+            }
+          });
+        },
+        (error) => {
+          console.error("Error in checkIfNewMonth db transaction: " + error);
+          reject();
+        },
+        () => {
+          console.log("checkIfNewMonth resolved");
+          resolve();
+        }
+      );
+    });
+  };
   useEffect(() => {
+    Promise.all([
+      checkIfNewMonth(),
+      createExpensesTable(),
+      createHistoryTable(),
+      createLastTimeUsedTable(),
+    ]).then(() => {
+      updatePage();
+    });
+    // db.transaction(
+    //   (tx) => {
+    //     tx.executeSql("delete from expenses;");
+    //   },
+    //   () => console.error("Error when deleting all expenses"),
+    //   () => {
+    //     console.log("expenses deleted");
+    //     updatePage();
+    //   }
+    // );
+  }, [rerender]);
+
+  const saveMonthsData = () => {
+    let totalExpenses = 0.0;
+
+    let month = currentDate.getMonth();
     db.transaction(
       (tx) => {
-        tx.executeSql(
-          "create table if not exists expenses (id integer primary key not null, category text, amount real );"
-        );
+        tx.executeSql("select * from expenses;", [], (_, { rows }) => {
+          rows._array.forEach((row) => {
+            totalExpenses += row.amount;
+          });
+
+          tx.executeSql(
+            "insert into history (month, year, expenses) values (?, ?, ?);",
+            [month, currentDate.getFullYear(), totalExpenses.toFixed(2)]
+          );
+        });
       },
-      () => console.error("Error when creating DB"),
-      updatePage
+      () => console.error("Error when saving data to hisrtory"),
+      () => console.log("History adding successfull")
     );
-  }, [rerender]);
+    db.transaction(
+      (tx) => {
+        tx.executeSql("delete from expenses;");
+      },
+      () => console.error("Error when deleting all expenses"),
+      () => {
+        console.log("expenses deleted");
+        updatePage();
+      }
+    );
+  };
 
   const updatePage = () => {
     db.transaction(
@@ -88,18 +215,37 @@ export default function Expense() {
   };
 
   const addExpense = () => {
-    db.transaction((tx) => {
-      tx.executeSql("insert into expenses (category, amount) values (?, ?);", [
-        category,
-        amount,
-      ]);
-    }, null);
-    Keyboard.dismiss();
-    setCategory("");
-    setAmount("");
-    setRerender(!rerender);
-  };
+    console.log("category: " + category);
+    console.log("amount:  " + amount);
 
+    if (amount > 0) {
+      db.transaction(
+        (tx) => {
+          console.log("perkele");
+          tx.executeSql(
+            "insert into expenses (category, amount) values (?, ?);",
+            [category, amount],
+            (_, { rowsAffected }) => {
+              console.log("Rows affected:", rowsAffected);
+            },
+            (_, error) => {
+              console.error("Error during execution:", error);
+              return true;
+            }
+          );
+        },
+        (error) => {
+          console.error("Error during database transaction:", error);
+        },
+        () => {
+          Keyboard.dismiss();
+          console.log("setting stuff to null");
+          setRerender(!rerender);
+          console.log("Database transaction completed successfully");
+        }
+      );
+    }
+  };
   // const resetDatabase = () => {
   //   console.log("Resetting database");
   //   db.transaction(
