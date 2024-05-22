@@ -10,11 +10,9 @@ import {
 import { Button, Icon, Input } from "@rneui/themed";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
-import * as SQLite from "expo-sqlite";
-import { SelectList } from "react-native-dropdown-select-list";
+import * as SQLite from "expo-sqlite/legacy";
 import "react-native-reanimated";
 import "react-native-gesture-handler";
-import { MotiView } from "moti";
 import HeaderRevealAnimation from "./RevealAnimation";
 
 const db = SQLite.openDatabase("incomeExpense.db");
